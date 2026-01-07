@@ -1,0 +1,110 @@
+---
+title: SEC Filings Intelligence System
+description: AI-assisted platform that ingests SEC EDGAR filings (10-K, 10-Q, 8-K), extracts relevant financial sections, and generates structured summaries to support investment research workflows.
+tech:
+  - Python
+  - Django
+  - OpenAI API
+  - ChromaDB
+  - PostgreSQL
+domain: finance
+constraint: Very large filings, strict LLM token limits, and minimizing hallucinations in financial summaries
+featured: true
+order: 3
+---
+
+## Context
+
+Public companies publish SEC EDGAR filings (10-K, 10-Q, 8-K) that are extremely long, inconsistently structured, and difficult to analyze manually. Investment research workflows require extracting relevant sections and generating concise, accurate summaries without introducing hallucinations.
+
+This system serves as **decision-support infrastructure** for investment research—not a document processing utility.
+
+## Primary Challenges
+
+### Token Limits
+- Filings often exceed hundreds of pages
+- LLMs have strict context window limitations
+- Naive summarization loses critical financial details
+
+### Document Variance
+- Inconsistent formatting across companies and filing types
+- Section headers vary by company and filer
+- Tables, footnotes, and exhibits require special handling
+
+### LLM Reliability
+- High risk of hallucination in financial text
+- Investment decisions require deterministic, repeatable summaries
+- Need for guardrails that don't compromise usefulness
+
+## Architecture
+
+The system follows a **retrieval-augmented generation (RAG)** approach:
+
+1. **Ingestion Layer**: Fetches filings from SEC EDGAR API
+2. **Parsing Layer**: Segments filings by logical sections using heuristics and document structure
+3. **Chunking Layer**: Splits sections into LLM-safe token chunks with overlap for context continuity
+4. **Embedding Layer**: Generates vector embeddings stored in ChromaDB
+5. **Retrieval Layer**: Semantic search for relevant chunks based on query
+6. **Generation Layer**: LLM summarization with retrieved context
+
+## Key Design Decisions
+
+### Section-Based Parsing vs Full-Document Processing
+Full-document summarization was explicitly avoided. SEC filings contain boilerplate, legal disclaimers, and repetitive content that dilutes signal. Section-based parsing allows:
+- Targeted extraction (Risk Factors, MD&A, Financial Statements)
+- Reduced token usage
+- More focused summaries
+
+### Chunking Strategy
+Chunks are sized to fit within token limits with 10-15% overlap. This ensures:
+- No information loss at boundaries
+- Context continuity for the LLM
+- Predictable token consumption
+
+### Embedding-Based Retrieval vs Keyword Search
+Semantic search via embeddings handles:
+- Synonym variations across filers
+- Conceptually related content
+- Query expansion without explicit rules
+
+### Hallucination Guardrails
+- Source citations in every generated summary
+- Confidence scoring for generated claims
+- Human-in-the-loop review for high-stakes outputs
+- Explicit "unknown" responses when context is insufficient
+
+## Explicit Tradeoffs
+
+### What This System Does NOT Do
+- Real-time streaming of new filings (batch processing only)
+- Quantitative financial modeling or valuation
+- Legal or compliance advice
+
+### Known Limitations
+- Heavily formatted tables may lose structure in parsing
+- Very long filings may require multiple retrieval rounds
+- LLM latency makes interactive use slower than search
+
+### Failure Cases Considered
+- Malformed or corrupt filings: graceful skip with logging
+- Embedding service downtime: queue for retry
+- LLM rate limits: backoff and batch scheduling
+
+## Frontend Integration
+
+A minimal React interface supports research workflows:
+
+- **Filing Search** — Filter by company, filing type, date range
+- **Summary Viewer** — Display generated summaries with source citations
+- **Chunk Explorer** — Review retrieved sections that informed the summary
+
+The frontend is intentionally simple—its purpose is to surface backend-generated analysis, not to showcase UI complexity.
+
+## Outcome
+
+The system enables:
+- **Faster analysis**: Hours of manual reading reduced to minutes
+- **Repeatable summaries**: Same filing, same query, consistent output
+- **Clear correctness boundaries**: Users know what the system can and cannot reliably answer
+
+This is not a magic "understand everything" tool. It's infrastructure that makes human analysts more efficient while maintaining transparency about its limitations.

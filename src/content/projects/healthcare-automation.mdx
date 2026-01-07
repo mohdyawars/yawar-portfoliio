@@ -1,0 +1,92 @@
+---
+title: "Healthcare Automation Platform"
+description: "End-to-end automation platform handling patient data processing, appointment scheduling, and compliance reporting across multiple practices."
+tech: ["Python", "Django", "Celery", "PostgreSQL", "GCP", "Playwright"]
+domain: healthcare
+constraint: "HIPAA compliance, zero tolerance for data loss"
+featured: true
+order: 1
+---
+
+## Context
+
+A healthcare organization managing multiple practices needed to automate repetitive tasks that consumed 4+ hours of staff time daily. The system integrates with existing EHR systems and handles real patient data with strict compliance requirements.
+
+## Problem
+
+Without this system:
+- Staff manually entered data across disconnected systems
+- Compliance reports took days to generate
+- Human errors in data entry caused billing issues
+- No audit trail for data changes
+
+The non-negotiables:
+- **HIPAA compliance** — all data encrypted, access logged
+- **Zero data loss** — every record must be traceable
+- **24/7 operation** — failures must self-recover
+
+## Architecture
+
+Task queue architecture with Celery workers processing jobs asynchronously:
+
+- **Django** — web dashboard and REST API
+- **Celery + Redis** — distributed task queue
+- **PostgreSQL** — primary data store with audit logging
+- **Playwright** — browser automation for legacy EHR systems
+
+Each automation type runs in isolation. A failure in one workflow doesn't cascade to others.
+
+## Key Design Decisions
+
+### Idempotency First
+
+Every task is designed to be safely retryable:
+
+```python
+@celery_app.task(bind=True, max_retries=3)
+def sync_patient_data(self, patient_id: str, request_id: str):
+    # Check if already processed
+    if ProcessedRecord.objects.filter(request_id=request_id).exists():
+        return {"status": "already_processed"}
+    
+    # Process with transaction to ensure atomicity
+    with transaction.atomic():
+        result = do_sync(patient_id)
+        ProcessedRecord.objects.create(request_id=request_id)
+    
+    return result
+```
+
+### Conservative Error Handling
+
+When uncertain, fail loudly rather than proceeding with potentially incorrect data:
+
+```python
+def process_record(record):
+    if not validate_required_fields(record):
+        raise ValidationError("Missing required fields")
+    
+    # Never assume. Verify at each step.
+    if not verify_patient_exists(record.patient_id):
+        raise DataIntegrityError("Patient not found")
+```
+
+### Screenshot-Based Debugging
+
+Every browser automation action captures a screenshot. When failures occur, engineers can visually trace exactly what the automation saw.
+
+## Failure Modes Handled
+
+| Failure Mode | Handling |
+|-------------|----------|
+| Network timeout | Exponential backoff retry (3 attempts) |
+| EHR system down | Queue task for later, alert on-call |
+| Invalid data | Reject record, log to review queue |
+| Partial completion | Transaction rollback, full retry |
+
+## Outcome
+
+- Reduced manual data entry by **70%**
+- **Zero compliance violations** since deployment
+- Processed **50,000+ records** with 99.9% uptime
+- Staff time reallocated to patient care

@@ -1,0 +1,115 @@
+---
+title: "RPA Pipeline System"
+description: "Robust automation pipeline for extracting data from legacy systems, processing daily reports, and syncing across multiple platforms."
+tech: ["Python", "Playwright", "Celery", "Redis", "Docker"]
+domain: healthcare
+constraint: "Legacy systems without APIs, daily data sync deadlines"
+featured: true
+order: 2
+---
+
+## Context
+
+Organizations often rely on legacy systems that lack APIs. Data needs to be extracted manually from web interfaces, reformatted, and uploaded to other systems—every single day.
+
+## Problem
+
+Without automation:
+- 2+ hours daily spent on manual data extraction
+- Errors in copy-paste operations
+- No audit trail for data sync
+- Missed deadlines when staff unavailable
+
+The non-negotiables:
+- **Reliability** — must complete every morning before business hours
+- **Accuracy** — no data corruption during extraction
+- **Visibility** — clear logs of what was processed
+
+## Architecture
+
+Supervisor pattern where a coordinator spawns isolated worker tasks:
+
+```python
+@celery_app.task(bind=True)
+def run_daily_sync(self):
+    """Coordinator task that orchestrates the daily sync."""
+    tasks = [
+        download_appointments.s(),
+        download_billing.s(),
+        process_reports.s(),
+        upload_to_destination.s(),
+    ]
+    return chain(*tasks).apply_async()
+```
+
+Each worker is isolated—failure in one doesn't affect others.
+
+## Key Design Decisions
+
+### Browser Automation Over API Reverse-Engineering
+
+We chose Playwright over trying to reverse-engineer proprietary APIs:
+
+- Legacy systems change their internal APIs frequently
+- Visual automation is easier to debug with screenshots
+- No risk of violating terms of service
+- Maintenance is straightforward: update the selector
+
+### Sequential Execution
+
+Tasks run sequentially within a workflow:
+
+- Avoids overwhelming target systems
+- Maintains deterministic execution order
+- Makes debugging straightforward
+- Allows for natural checkpointing
+
+### State Machine Pattern
+
+Every automation tracks its current state:
+
+```python
+class SyncState(Enum):
+    PENDING = "pending"
+    DOWNLOADING = "downloading"
+    PROCESSING = "processing"
+    UPLOADING = "uploading"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+def resume_from_state(sync_id: str):
+    """Resume an interrupted sync from its last known state."""
+    sync = Sync.objects.get(id=sync_id)
+    if sync.state == SyncState.DOWNLOADING:
+        return chain(download.s(), process.s(), upload.s())
+    elif sync.state == SyncState.PROCESSING:
+        return chain(process.s(), upload.s())
+    # ... etc
+```
+
+## Failure Modes Handled
+
+| Failure Mode | Handling |
+|-------------|----------|
+| Login failure | Retry with fresh session, alert if persists |
+| Page timeout | Screenshot + retry with backoff |
+| File download failed | Mark for manual review |
+| Upload rejected | Validate data format, retry or escalate |
+
+## Frontend Integration
+
+Internal admin panels built with Angular support the RPA system:
+
+- **Task Dashboard** — Real-time status of running automations
+- **Execution Log Viewer** — Searchable history of all runs with screenshots on failure
+- **Manual Trigger Interface** — Operations can initiate syncs outside scheduled times
+- **Error Review Panel** — Review failed tasks, view context, and retry with one click
+
+The frontend exists to support correctness, not to showcase design. Backend validation enforces all critical checks—the UI simply surfaces status and allows controlled actions.
+
+## Outcome
+
+- Eliminated **4 hours of daily manual work**
+- **99.5% success rate** on automated tasks
+- Reduced data sync errors by **90%**
+- Staff can focus on exceptions, not routine work

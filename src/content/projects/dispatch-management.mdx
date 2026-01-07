@@ -1,0 +1,163 @@
+---
+title: "Dispatch Goods Operations Platform"
+description: "Internal operations platform for Dispatch Goods supporting daily workflows, QuickBooks integration, SMS communication, and automated CSV processing."
+tech: ["Python", "Django", "Celery", "Redis", "PostgreSQL", "QuickBooks Online API", "Heymarket API"]
+domain: logistics
+constraint: "Reliability over features, idempotent scheduled processing, operational correctness for non-technical users"
+featured: true
+order: 2
+---
+
+## Context
+
+Dispatch Goods operates a reusable container logistics business. The operations team needed internal tooling to manage daily workflows without relying on developers for routine tasks.
+
+This is **not a customer-facing product**—it's internal infrastructure that the operations team uses every day. When this system has issues, containers don't get tracked, invoices don't sync, and customers don't get notified.
+
+## Problem
+
+Operations relied on:
+- Manual data entry across multiple systems
+- Copy-pasting between QuickBooks and spreadsheets
+- Ad-hoc scripts that broke when data formats changed
+- No visibility into what ran, when, or why it failed
+
+The non-negotiables:
+- **Reliability** — system must run without developer intervention
+- **Idempotency** — same schedule can run multiple times safely
+- **Failure tolerance** — one bad row can't break the entire batch
+- **Operational correctness** — non-technical users must trust the output
+
+## Architecture
+
+Three integrated subsystems:
+
+1. **QuickBooks Online Integration** — Two-way sync for invoices and customer data
+2. **Heymarket SMS Integration** — Operational notifications and customer communication
+3. **Scheduled CSV Processing** — Admin-configured automated data imports
+
+## Key Design Decisions
+
+### Admin-Configured Scheduling
+
+Operations staff configure their own schedules without touching code:
+
+```python
+class ScheduledCSVJob(models.Model):
+    name = models.CharField(max_length=100)
+    source_path = models.CharField()  # S3 or SFTP path
+    schedule = models.CharField()  # Crontab expression
+    processor_type = models.CharField()  # Which processor to run
+    enabled = models.BooleanField(default=True)
+    last_run = models.DateTimeField(null=True)
+    last_status = models.CharField(default="pending")
+```
+
+Celery Beat picks up these configurations and runs jobs at the specified times.
+
+### Idempotent Processing
+
+Every scheduled run is safe to repeat:
+
+```python
+def process_csv_job(job_id: str, run_id: str):
+    job = ScheduledCSVJob.objects.get(id=job_id)
+    
+    # Check if this exact run was already processed
+    existing = ProcessingRun.objects.filter(
+        job=job,
+        run_id=run_id,
+        status="completed"
+    ).exists()
+    
+    if existing:
+        logger.info(f"Run {run_id} already completed, skipping")
+        return
+    
+    # Process with row-level error isolation
+    for row in read_csv(job.source_path):
+        try:
+            process_row(row, job)
+        except Exception as e:
+            log_row_error(row, e)
+            continue  # Don't fail the whole batch
+```
+
+### Graceful Failure Handling
+
+External APIs fail. The system handles it:
+
+```python
+@celery_app.task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=300,  # 5 minutes
+    autoretry_for=(QuickBooksAPIError, HeymarketAPIError)
+)
+def sync_invoice_to_quickbooks(self, invoice_id: str):
+    try:
+        invoice = Invoice.objects.get(id=invoice_id)
+        quickbooks_client.create_or_update(invoice)
+    except QuickBooksRateLimitError:
+        # Back off longer for rate limits
+        raise self.retry(countdown=600)
+```
+
+### QuickBooks Two-Way Sync
+
+Changes flow both directions:
+
+- **Outbound**: New invoices push to QuickBooks automatically
+- **Inbound**: Payment status syncs back via webhooks
+- **Conflict resolution**: QuickBooks is source of truth for payments
+
+### Heymarket Integration
+
+SMS notifications for operational events:
+
+```python
+def notify_customer(customer_id: str, event_type: str, context: dict):
+    customer = Customer.objects.get(id=customer_id)
+    template = get_sms_template(event_type)
+    
+    heymarket_client.send_sms(
+        to=customer.phone,
+        message=template.render(context),
+        idempotency_key=f"{customer_id}:{event_type}:{context.get('order_id')}"
+    )
+```
+
+## Failure Modes Handled
+
+| Failure Mode | Handling |
+|-------------|----------|
+| Malformed CSV row | Skip row, log error, continue processing |
+| QuickBooks API down | Queue for retry with exponential backoff |
+| Heymarket rate limit | Backoff and retry, alert if persistent |
+| Duplicate schedule run | Idempotency check prevents double-processing |
+| Missing required field | Validation error logged, row skipped |
+
+## Frontend Integration
+
+The operations platform includes internal dashboards built with React:
+
+- **Job Scheduler Dashboard** — Non-technical users configure and monitor CSV processing schedules
+- **Execution Status Panel** — Real-time visibility into running jobs, successes, and failures
+- **QuickBooks Sync Monitor** — View sync history, pending items, and conflict resolution status
+- **Error Review Interface** — Operations staff can review and retry failed rows without developer help
+
+**Design philosophy:**
+- Backend remains the source of truth for all operations
+- Frontend validates but never assumes correctness
+- Optimized for operators, not demos
+- Backend-enforced permissions and guardrails
+
+## Outcome
+
+- **Zero developer involvement** for routine operations since launch
+- Processes **200+ CSV rows daily** with row-level error isolation
+- QuickBooks sync runs **automatically every 15 minutes**
+- Failed jobs retry **without manual intervention**
+- Operations team has **full visibility** into job status and errors
+
+This is production infrastructure that runs every day. The measure of success isn't feature count—it's that operations staff trust it to work.

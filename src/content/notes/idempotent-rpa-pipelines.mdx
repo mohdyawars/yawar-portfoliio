@@ -1,0 +1,90 @@
+---
+title: "Designing Idempotent RPA Pipelines"
+date: "2024-12-15"
+excerpt: "How to build automation systems that can safely retry without causing duplicate actions or corrupted data."
+tags: ["RPA", "Automation", "System Design"]
+---
+
+When building automation systems that interact with external services, things will fail. Networks timeout, services go down, and browsers crash. The question isn't *if* your automation will fail, but *what happens when it does*.
+
+## The Problem with Naive Retries
+
+Consider a simple automation that creates an appointment:
+
+```python
+def create_appointment(patient_id: str, date: str):
+    login_to_portal()
+    navigate_to_scheduling()
+    fill_form(patient_id, date)
+    click_submit()
+```
+
+If this fails after `click_submit()` but before we record success, we don't know if the appointment was created. Retrying might create a duplicate.
+
+## Idempotency: Same Input, Same Result
+
+An **idempotent** operation produces the same result regardless of how many times it's executed. For our appointment system:
+
+```python
+def create_appointment(patient_id: str, date: str, request_id: str):
+    # Check if we already processed this request
+    if appointment_exists(patient_id, date, request_id):
+        return get_existing_appointment(patient_id, date, request_id)
+    
+    # Create new appointment
+    appointment = do_create_appointment(patient_id, date)
+    
+    # Record that we processed this request
+    record_processed(request_id, appointment)
+    
+    return appointment
+```
+
+## Strategies for Idempotency
+
+### 1. Check Before Acting
+
+Before performing an action, check if it was already done:
+
+```python
+def download_report(date: str) -> bytes:
+    # Check if already downloaded today
+    cached = get_cached_report(date)
+    if cached:
+        return cached
+    
+    # Download fresh
+    report = scrape_report(date)
+    cache_report(date, report)
+    return report
+```
+
+### 2. Unique Request IDs
+
+Tag every operation with a unique ID that stays constant across retries:
+
+```python
+@celery.task(bind=True)
+def sync_patient(self, patient_id: str):
+    request_id = f"{patient_id}:{self.request.id}"
+    # Use request_id to detect duplicate processing
+```
+
+### 3. Atomic State Transitions
+
+Make state changes atomic. Either everything succeeds, or nothing changes:
+
+```python
+with transaction.atomic():
+    patient = Patient.objects.select_for_update().get(id=patient_id)
+    if patient.sync_status == "pending":
+        perform_sync(patient)
+        patient.sync_status = "completed"
+        patient.save()
+```
+
+## The Trade-off
+
+Idempotency adds complexity and requires careful thinking about edge cases. But for systems where reliability matters—healthcare, finance, anything with real-world consequences—it's non-negotiable.
+
+Start by identifying which operations need idempotency (writes, not reads), then systematically add detection and deduplication logic. Your future self (and your on-call rotation) will thank you.
