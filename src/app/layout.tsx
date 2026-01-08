@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   title: "Yawar | Backend Engineer",
   description:
     "Backend engineer specializing in healthcare automation, RPA pipelines, and reliable systems.",
+  verification: {
+    google: "fRVHIoZ7P6YF4qUh75iZ2xPmrv12f4Q-5cqxEBjOj6U",
+  },
   icons: {
     icon: "/favicon.svg",
     apple: "/favicon.svg",
