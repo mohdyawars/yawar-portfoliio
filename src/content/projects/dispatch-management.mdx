@@ -1,9 +1,9 @@
 ---
 title: "Dispatch Goods – Internal Operations Platform"
-description: "Internal operations platform for Dispatch Goods supporting daily workflows, QuickBooks integration, SMS communication, and automated CSV processing."
+description: "Internal operations platform for Dispatch Goods with automated QuickBooks invoice sync, SMS notifications, and scheduled data processing."
 tech: ["Python", "Django", "Celery", "Redis", "PostgreSQL", "QuickBooks Online API", "Heymarket API"]
 domain: logistics
-constraint: "Reliability over features, idempotent scheduled processing, operational correctness for non-technical users"
+constraint: "Reliability over features, idempotent processing, designed for non-technical operations staff"
 featured: true
 order: 2
 ---
@@ -24,9 +24,9 @@ Operations relied on:
 
 The non-negotiables:
 - **Reliability** — system must run without developer intervention
-- **Idempotency** — same schedule can run multiple times safely
-- **Failure tolerance** — one bad row can't break the entire batch
-- **Operational correctness** — non-technical users must trust the output
+- **Idempotent** — same operation can run multiple times safely
+- **Fault-tolerant** — one bad row can't break the entire batch
+- **Trustworthy** — non-technical users must be able to rely on the results
 
 ## Architecture
 
@@ -57,7 +57,7 @@ Celery Beat picks up these configurations and runs jobs at the specified times.
 
 ### Idempotent Processing
 
-Every scheduled run is safe to repeat:
+Every scheduled run is designed to be safely retryable:
 
 ```python
 def process_csv_job(job_id: str, run_id: str):
@@ -83,9 +83,9 @@ def process_csv_job(job_id: str, run_id: str):
             continue  # Don't fail the whole batch
 ```
 
-### Graceful Failure Handling
+### Automatic Retry on Failure
 
-External APIs fail. The system handles it:
+External APIs fail. The system handles it with automatic retries and backoff:
 
 ```python
 @celery_app.task(
@@ -103,17 +103,21 @@ def sync_invoice_to_quickbooks(self, invoice_id: str):
         raise self.retry(countdown=600)
 ```
 
-### QuickBooks Two-Way Sync
+### QuickBooks Integration
 
-Changes flow both directions:
+**The Problem**: The operations team was manually creating invoices in QuickBooks for every new order – a tedious, error-prone process.
 
-- **Outbound**: New invoices push to QuickBooks automatically
-- **Inbound**: Payment status syncs back via webhooks
-- **Conflict resolution**: QuickBooks is source of truth for payments
+**The Solution**: A scheduled job (cronjob) monitors for new orders and automatically creates corresponding invoices in QuickBooks:
 
-### Heymarket Integration
+- **Automatic Invoice Creation** — When a new order is created in our system, the cronjob detects it and creates the invoice in QuickBooks automatically
+- **Two-Way Sync** — Payment status syncs back from QuickBooks via webhooks
+- **Conflict Handling** — QuickBooks is the source of truth for payment information
 
-SMS notifications for operational events:
+This eliminated hours of manual data entry and removed the possibility of human error in invoice creation.
+
+### SMS Notifications (Heymarket)
+
+Customers receive SMS updates for operational events:
 
 ```python
 def notify_customer(customer_id: str, event_type: str, context: dict):
@@ -141,15 +145,15 @@ def notify_customer(customer_id: str, event_type: str, context: dict):
 
 The operations platform includes internal dashboards built with React and Angular:
 
-- **Job Scheduler Dashboard** — Non-technical users configure and monitor CSV processing schedules
+- **Job Scheduler Dashboard** — Non-technical users configure and monitor scheduled processing
 - **Execution Status Panel** — Real-time visibility into running jobs, successes, and failures
-- **QuickBooks Sync Monitor** — View sync history, pending items, and conflict resolution status
-- **Error Review Interface** — Operations staff can review and retry failed rows without developer help
+- **QuickBooks Sync Monitor** — View sync history, pending items, and conflict resolution
+- **Error Review Interface** — Operations staff can review and retry failed items without developer help
 
 **Design philosophy:**
 - Backend remains the source of truth for all operations
 - Frontend validates but never assumes correctness
-- Optimized for operators, not demos
+- Optimized for daily operational use, not demos
 - Backend-enforced permissions and guardrails
 
 ## Outcome

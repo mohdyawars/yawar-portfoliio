@@ -11,6 +11,8 @@
   --accent-foreground: #18181b;
   --border: #e4e4e7;
   --section-alt: #fafafa;
+  --gradient-start: #3b82f6;
+  --gradient-end: #8b5cf6;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,6 +27,8 @@
     --accent-foreground: #fafafa;
     --border: #27272a;
     --section-alt: #0f0f10;
+    --gradient-start: #60a5fa;
+    --gradient-end: #a78bfa;
   }
 }
 
@@ -71,6 +75,32 @@ body {
   .heading-display {
     font-size: 4rem;
   }
+}
+
+/* Hero greeting with gradient */
+.hero-greeting {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-greeting-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
 }
 
 .heading-section {
