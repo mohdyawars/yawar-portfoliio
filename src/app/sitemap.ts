@@ -1,9 +1,9 @@
 import { MetadataRoute } from "next";
+import { getAllProjects, getAllBlogPosts } from "@/lib/mdx";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://yawar-portfoliio.vercel.app";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://yawar-portfoliio.vercel.app";
 
-  // Static pages
   const staticPages = [
     {
       url: baseUrl,
@@ -29,22 +29,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly" as const,
       priority: 0.7,
     },
+    {
+      url: `${baseUrl}/systems`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    },
   ];
 
-  // Project pages
-  const projects = [
-    "dispatch-management",
-    "healthcare-automation",
-    "rpa-pipeline",
-    "sec-filings-intelligence",
-  ];
-
-  const projectPages = projects.map((slug) => ({
-    url: `${baseUrl}/systems/${slug}`,
+  const projectPages = getAllProjects().map((project) => ({
+    url: `${baseUrl}/systems/${project.slug}`,
     lastModified: new Date(),
     changeFrequency: "monthly" as const,
     priority: 0.9,
   }));
 
-  return [...staticPages, ...projectPages];
+  const notePages = getAllBlogPosts().map((post) => ({
+    url: `${baseUrl}/notes/${post.slug}`,
+    lastModified: new Date(post.frontmatter.date),
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
+  return [...staticPages, ...projectPages, ...notePages];
 }

@@ -6,6 +6,7 @@ import { getProjectBySlug, getAllProjects } from "@/lib/mdx";
 import { generatePageMetadata } from "@/lib/metadata";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Github, ExternalLink } from "lucide-react";
+import { DOMAIN_LABELS } from "@/lib/constants";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -33,12 +34,6 @@ export async function generateMetadata({ params }: Props) {
   });
 }
 
-const domainLabels = {
-  healthcare: "Healthcare",
-  logistics: "Logistics",
-  finance: "Finance",
-};
-
 export default async function SystemPage({ params }: Props) {
   const { slug } = await params;
   const project = getProjectBySlug(slug);
@@ -60,7 +55,7 @@ export default async function SystemPage({ params }: Props) {
       <article>
         <header className="mb-10">
           <div className="mb-3 text-sm font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            {domainLabels[project.frontmatter.domain] ||
+            {DOMAIN_LABELS[project.frontmatter.domain] ||
               project.frontmatter.domain}
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">

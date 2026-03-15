@@ -9,24 +9,19 @@ import {
 } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
 import type { ProjectFrontmatter } from "@/lib/mdx";
+import { DOMAIN_LABELS } from "@/lib/constants";
 
 interface ProjectCardProps {
   slug: string;
   frontmatter: ProjectFrontmatter;
 }
 
-const domainLabels = {
-  healthcare: "Healthcare",
-  logistics: "Logistics",
-  finance: "Finance",
-};
-
 export function ProjectCard({ slug, frontmatter }: ProjectCardProps) {
   return (
     <Card className="group flex h-full flex-col transition-shadow hover:shadow-md">
       <CardHeader className="pb-3">
         <div className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-          {domainLabels[frontmatter.domain] || frontmatter.domain}
+          {DOMAIN_LABELS[frontmatter.domain] || frontmatter.domain}
         </div>
         <CardTitle className="text-lg group-hover:text-zinc-700 dark:group-hover:text-zinc-300">
           {frontmatter.title}

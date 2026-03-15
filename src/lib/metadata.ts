@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://yourportfolio.com";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://yawar-portfoliio.vercel.app";
 const siteName = "Yawar's Portfolio";
 const defaultDescription = "Backend engineer specializing in healthcare automation, RPA pipelines, and reliable systems.";
 
