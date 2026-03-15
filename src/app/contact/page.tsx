@@ -3,6 +3,7 @@ import { generatePageMetadata } from "@/lib/metadata";
 import { Button } from "@/components/ui/button";
 import { ContactForm } from "@/components/ContactForm";
 import { Github, Linkedin } from "lucide-react";
+import { SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata = generatePageMetadata({
   title: "Contact",
@@ -48,7 +49,7 @@ export default function ContactPage() {
                 </p>
                 <Button variant="link" className="mt-1 h-auto p-0 text-sm" asChild>
                   <Link
-                    href="https://github.com/mohdyawars"
+                    href={SOCIAL_LINKS.github}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -71,7 +72,7 @@ export default function ContactPage() {
                 </p>
                 <Button variant="link" className="mt-1 h-auto p-0 text-sm" asChild>
                   <Link
-                    href="https://www.linkedin.com/in/yawar-shahid-3032b816b/"
+                    href={SOCIAL_LINKS.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -87,7 +88,7 @@ export default function ContactPage() {
               <strong className="text-zinc-900 dark:text-zinc-50">Prefer email?</strong>{" "}
               You can also reach me directly at{" "}
               <a
-                href="mailto:mohdyawars@gmail.com"
+                href={SOCIAL_LINKS.email}
                 className="font-medium text-zinc-900 underline underline-offset-4 dark:text-zinc-50"
               >
                 mohdyawars@gmail.com

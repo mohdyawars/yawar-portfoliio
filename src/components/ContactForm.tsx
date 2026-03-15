@@ -6,6 +6,10 @@ import { Send, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 type FormStatus = "idle" | "submitting" | "success" | "error";
 
+const FORMSPREE_URL = process.env.NEXT_PUBLIC_FORMSPREE_ID
+  ? `https://formspree.io/f/${process.env.NEXT_PUBLIC_FORMSPREE_ID}`
+  : "https://formspree.io/f/mzddrqqw";
+
 export function ContactForm() {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -19,7 +23,7 @@ export function ContactForm() {
     const formData = new FormData(form);
 
     try {
-      const response = await fetch("https://formspree.io/f/mzddrqqw", {
+      const response = await fetch(FORMSPREE_URL, {
         method: "POST",
         body: formData,
         headers: {
@@ -67,8 +71,10 @@ export function ContactForm() {
     );
   }
 
+  const hasError = status === "error";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div>
         <label
           htmlFor="name"
@@ -81,6 +87,7 @@ export function ContactForm() {
           id="name"
           name="name"
           required
+          aria-required="true"
           className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
           placeholder="Your name"
         />
@@ -98,6 +105,7 @@ export function ContactForm() {
           id="email"
           name="email"
           required
+          aria-required="true"
           className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
           placeholder="your@email.com"
         />
@@ -115,6 +123,7 @@ export function ContactForm() {
           id="subject"
           name="subject"
           required
+          aria-required="true"
           className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
           placeholder="What's this about?"
         />
@@ -132,13 +141,20 @@ export function ContactForm() {
           name="message"
           rows={5}
           required
+          aria-required="true"
+          aria-invalid={hasError}
+          aria-describedby={hasError ? "form-error" : undefined}
           className="mt-1 block w-full resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
           placeholder="Your message..."
         />
       </div>
 
-      {status === "error" && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+      {hasError && (
+        <div
+          id="form-error"
+          role="alert"
+          className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
+        >
           <AlertCircle className="h-4 w-4" />
           {errorMessage || "Failed to send message. Please try again."}
         </div>
