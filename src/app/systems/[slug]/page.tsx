@@ -42,8 +42,49 @@ export default async function SystemPage({ params }: Props) {
     notFound();
   }
 
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://yawar-portfoliio.vercel.app";
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Systems",
+        item: `${siteUrl}/systems`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: project.frontmatter.title,
+        item: `${siteUrl}/systems/${slug}`,
+      },
+    ],
+  };
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: project.frontmatter.title,
+    description: project.frontmatter.description,
+    url: `${siteUrl}/systems/${slug}`,
+    author: { "@type": "Person", name: "Yawar", url: siteUrl },
+    keywords: project.frontmatter.tech.join(", "),
+  };
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       <Link
         href="/systems"
         className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"

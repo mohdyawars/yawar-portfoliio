@@ -7,31 +7,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages = [
     {
       url: baseUrl,
-      lastModified: new Date(),
+      lastModified: new Date("2026-03-17"),
       changeFrequency: "monthly" as const,
       priority: 1,
     },
     {
       url: `${baseUrl}/about`,
-      lastModified: new Date(),
+      lastModified: new Date("2026-03-17"),
       changeFrequency: "monthly" as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/contact`,
-      lastModified: new Date(),
+      lastModified: new Date("2026-03-17"),
       changeFrequency: "yearly" as const,
       priority: 0.5,
     },
     {
       url: `${baseUrl}/notes`,
-      lastModified: new Date(),
+      lastModified: new Date("2026-03-17"),
       changeFrequency: "weekly" as const,
       priority: 0.7,
     },
     {
       url: `${baseUrl}/systems`,
-      lastModified: new Date(),
+      lastModified: new Date("2026-03-17"),
       changeFrequency: "monthly" as const,
       priority: 0.8,
     },
@@ -39,7 +39,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const projectPages = getAllProjects().map((project) => ({
     url: `${baseUrl}/systems/${project.slug}`,
-    lastModified: new Date(),
+    lastModified: new Date("2026-03-17"),
     changeFrequency: "monthly" as const,
     priority: 0.9,
   }));

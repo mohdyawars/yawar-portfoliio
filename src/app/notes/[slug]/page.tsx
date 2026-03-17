@@ -40,6 +40,9 @@ export default async function NotePage({ params }: Props) {
     notFound();
   }
 
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://yawar-portfoliio.vercel.app";
+
   const formattedDate = new Date(post.frontmatter.date).toLocaleDateString(
     "en-US",
     {
@@ -49,8 +52,47 @@ export default async function NotePage({ params }: Props) {
     }
   );
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Notes",
+        item: `${siteUrl}/notes`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: post.frontmatter.title,
+        item: `${siteUrl}/notes/${slug}`,
+      },
+    ],
+  };
+
+  const blogPostSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.frontmatter.title,
+    description: post.frontmatter.excerpt,
+    url: `${siteUrl}/notes/${slug}`,
+    datePublished: post.frontmatter.date,
+    author: { "@type": "Person", name: "Yawar", url: siteUrl },
+    keywords: post.frontmatter.tags?.join(", "),
+  };
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostSchema) }}
+      />
       <Link
         href="/notes"
         className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
