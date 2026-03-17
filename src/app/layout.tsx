@@ -58,7 +58,8 @@ export const metadata: Metadata = {
 const personSchema = {
   "@context": "https://schema.org",
   "@type": "Person",
-  name: "Yawar",
+  name: "Mohd Yawar Shahid",
+  alternateName: "Yawar",
   url: siteUrl,
   jobTitle: "Backend Engineer",
   description:
