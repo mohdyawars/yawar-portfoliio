@@ -27,7 +27,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/notes`,
       lastModified: new Date("2026-03-17"),
       changeFrequency: "weekly" as const,
-      priority: 0.7,
+      priority: 0.8,
     },
     {
       url: `${baseUrl}/systems`,

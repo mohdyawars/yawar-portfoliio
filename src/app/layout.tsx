@@ -77,6 +77,7 @@ const personSchema = {
     "RPA",
     "Backend Engineering",
   ],
+  sameAs: ["https://www.linkedin.com/in/yawar-shahid-3032b816b/"],
 };
 
 const websiteSchema = {

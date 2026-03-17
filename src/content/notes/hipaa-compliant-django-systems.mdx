@@ -1,0 +1,104 @@
+---
+title: "What HIPAA Compliance Actually Means in Django Code"
+date: "2025-02-10"
+excerpt: "Practical patterns I use to build HIPAA-compliant healthcare systems with Django — encryption, audit logs, access control, and more."
+tags: ["Django", "Healthcare", "HIPAA", "Security", "Python"]
+---
+
+When I built an automation platform for a healthcare organization managing multiple practices, "HIPAA compliance" wasn't just a checkbox — it shaped every technical decision. Here's what it actually looks like in code.
+
+## What HIPAA Requires (That Developers Miss)
+
+Most developers know about data encryption. Fewer think about:
+
+- **Audit trails** — every read and write of patient data must be logged with who, when, and what changed
+- **Minimum necessary access** — users should only see data they need for their specific role
+- **Automatic session timeout** — idle sessions must expire
+- **Encrypted data at rest and in transit** — not just HTTPS, but database-level encryption for PHI fields
+
+## Audit Logging with Django Signals
+
+The most important pattern: log every change to patient data automatically.
+
+```python
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
+@receiver(post_save, sender=PatientRecord)
+def log_patient_record_change(sender, instance, created, **kwargs):
+    AuditLog.objects.create(
+        user=get_current_user(),  # middleware sets this
+        action="created" if created else "updated",
+        model="PatientRecord",
+        object_id=str(instance.id),
+        timestamp=timezone.now(),
+        ip_address=get_current_ip(),
+    )
+```
+
+I use a middleware that stores the current request user in thread-local storage so signals can access it without being passed explicitly.
+
+## Field-Level Encryption for PHI
+
+Store protected health information encrypted, not in plaintext:
+
+```python
+from django_cryptography.fields import encrypt
+
+class PatientRecord(models.Model):
+    # Encrypted at the database level
+    date_of_birth = encrypt(models.DateField())
+    ssn_last_four = encrypt(models.CharField(max_length=4))
+    diagnosis_notes = encrypt(models.TextField(blank=True))
+
+    # Non-PHI fields — no encryption needed
+    practice_id = models.ForeignKey(Practice, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+```
+
+Django-cryptography handles key management and transparently encrypts/decrypts. The raw database never contains readable PHI.
+
+## Role-Based Access with Django Permissions
+
+```python
+class PatientRecordViewSet(viewsets.ModelViewSet):
+    def get_queryset(self):
+        user = self.request.user
+
+        # Admins see all records in their practice
+        if user.has_perm("records.view_all"):
+            return PatientRecord.objects.filter(practice=user.practice)
+
+        # Staff only see records assigned to them
+        return PatientRecord.objects.filter(
+            practice=user.practice,
+            assigned_staff=user,
+        )
+```
+
+Never trust the frontend to filter data — always enforce at the queryset level.
+
+## Handling Celery Tasks with PHI
+
+Never pass patient data directly into task arguments — task arguments are stored in Redis in plaintext:
+
+```python
+# BAD — PHI sits in Redis queue
+sync_patient.delay(patient_name="John Doe", dob="1990-01-01", ssn="123")
+
+# GOOD — pass only the ID, fetch data inside the task
+sync_patient.delay(patient_id="a1b2c3")
+
+@celery_app.task
+def sync_patient(patient_id: str):
+    patient = PatientRecord.objects.get(id=patient_id)
+    # Now data is fetched securely, not stored in queue
+```
+
+## The Mindset Shift
+
+HIPAA compliance isn't a feature you add at the end — it's a constraint that shapes your architecture from day one. Every time I model data, I ask: *is this PHI? Who should see it? What happens if it leaks?*
+
+The systems that fail compliance audits aren't usually doing something obviously wrong. They're doing something reasonable that wasn't thought through: logging too much, caching things they shouldn't, or assuming the ORM handles security automatically.
+
+It doesn't. You have to be deliberate.

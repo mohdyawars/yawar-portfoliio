@@ -1,0 +1,121 @@
+---
+title: "Running Playwright in Production: Lessons from Automating Legacy EHR Systems"
+date: "2025-03-05"
+excerpt: "How I used Playwright to automate legacy healthcare portals that had no API — and what I learned about making browser automation reliable enough for production."
+tags: ["Playwright", "Automation", "Python", "RPA", "Healthcare"]
+---
+
+One of the harder problems I've faced: automating a legacy EHR (Electronic Health Records) system that had no API, no webhooks, and no exports. The only interface was a web portal built in 2009. The solution was Playwright — but making it production-reliable took more thought than I expected.
+
+## Why Browser Automation Breaks in Production
+
+In development, Playwright feels magical. In production, it breaks constantly:
+
+- **Timing issues** — elements load at different speeds depending on server load
+- **Session expiry** — the portal logs you out after 30 minutes of inactivity
+- **Layout changes** — the vendor updates the portal and your selectors break silently
+- **Rate limiting** — too many rapid actions trigger CAPTCHA or IP blocks
+- **Resource constraints** — browsers are memory-heavy; running 10 concurrently on a small VM crashes it
+
+Each of these killed my automation at some point. Here's how I handled them.
+
+## Screenshot Every Step
+
+The single most valuable debugging tool: screenshot on every action.
+
+```python
+async def safe_click(page, selector: str, label: str):
+    await page.wait_for_selector(selector, timeout=10_000)
+    await page.screenshot(path=f"screenshots/{label}_before.png")
+    await page.click(selector)
+    await page.screenshot(path=f"screenshots/{label}_after.png")
+```
+
+When a task fails, engineers can visually trace exactly what the browser saw. This saved hours of debugging on flaky failures where the portal showed an unexpected modal or error banner.
+
+Screenshots are stored in GCS with the task ID so they're tied to the specific Celery task run.
+
+## Wrapping Each Session in a Context Manager
+
+Session management is critical when automating authenticated portals:
+
+```python
+from contextlib import asynccontextmanager
+from playwright.async_api import async_playwright
+
+@asynccontextmanager
+async def portal_session(credentials):
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context()
+        page = await context.new_page()
+        try:
+            await login(page, credentials)
+            yield page
+        finally:
+            await browser.close()  # Always clean up
+
+async def sync_patient_record(patient_id: str):
+    async with portal_session(get_credentials()) as page:
+        await navigate_to_patient(page, patient_id)
+        data = await extract_record(page)
+        return data
+```
+
+The `finally` block guarantees the browser process dies even if the task crashes — critical on a server with limited memory.
+
+## Handling Flaky Selectors
+
+Legacy portals have inconsistent HTML. I use multiple fallback selectors:
+
+```python
+async def find_submit_button(page):
+    selectors = [
+        'button[type="submit"]',
+        'input[value="Submit"]',
+        'a.submit-btn',          # Some pages use a link
+        'button:has-text("Save")',
+    ]
+    for selector in selectors:
+        try:
+            el = await page.wait_for_selector(selector, timeout=2_000)
+            if el:
+                return el
+        except:
+            continue
+    raise Exception("Submit button not found — portal may have changed layout")
+```
+
+When the exception fires, it triggers a Slack alert so someone can verify the portal hasn't changed before the next run.
+
+## Throttling to Avoid Detection
+
+Rapid-fire automation triggers rate limiting. I add human-like delays:
+
+```python
+import asyncio
+import random
+
+async def human_delay(min_ms=500, max_ms=1500):
+    await asyncio.sleep(random.randint(min_ms, max_ms) / 1000)
+
+# Between actions
+await page.fill('#patient-id', patient_id)
+await human_delay()
+await page.fill('#date-of-birth', dob)
+await human_delay()
+await safe_click(page, '#search-btn', 'patient_search')
+```
+
+## The Architecture Around Playwright
+
+Playwright alone isn't enough — it needs to be embedded in a reliable task queue:
+
+- **Celery** manages scheduling and retries with exponential backoff
+- **Redis** stores task state so retries don't reprocess completed steps
+- **PostgreSQL** records which records were successfully synced
+- **GCS** stores screenshots for debugging
+
+Browser automation is the unreliable part of the system. Everything around it needs to be solid enough to compensate.
+
+The result: a system that processes 50,000+ records with 99.9% uptime — despite running against a portal that was never designed to be automated.
