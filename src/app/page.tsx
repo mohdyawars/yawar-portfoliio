@@ -29,6 +29,7 @@ export default function Home() {
     <div>
       {/* Hero Section */}
       <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8">
+        <p className="text-sm font-medium uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-4">Yawar Shahid</p>
         <h1 className="heading-display max-w-4xl text-zinc-900 dark:text-zinc-50">
           I build reliable backend systems for healthcare, logistics, and
           finance

@@ -15,11 +15,24 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Yawar | Backend Engineer",
-    template: "%s | Yawar",
+    default: "Yawar Shahid | Backend Engineer",
+    template: "%s | Yawar Shahid",
   },
   description:
-    "Backend engineer specializing in healthcare automation, RPA pipelines, and reliable systems. Expert in Python, Django, Celery, PostgreSQL, and GCP.",
+    "Yawar Shahid is a backend engineer specializing in healthcare automation, RPA pipelines, and reliable systems. Expert in Python, Django, Celery, PostgreSQL, and GCP.",
+  keywords: [
+    "Yawar Shahid",
+    "Backend Engineer",
+    "Python Developer",
+    "Django",
+    "Healthcare Automation",
+    "RPA",
+    "Celery",
+    "PostgreSQL",
+    "GCP",
+  ],
+  authors: [{ name: "Yawar Shahid" }],
+  creator: "Yawar Shahid",
   verification: {
     google: "fRVHIoZ7P6YF4qUh75iZ2xPmrv12f4Q-5cqxEBjOj6U",
   },
@@ -31,26 +44,26 @@ export const metadata: Metadata = {
     canonical: siteUrl,
   },
   openGraph: {
-    title: "Yawar | Backend Engineer",
+    title: "Yawar Shahid | Backend Engineer",
     description:
-      "Backend engineer specializing in healthcare automation, RPA pipelines, and reliable systems.",
+      "Yawar Shahid is a backend engineer specializing in healthcare automation, RPA pipelines, and reliable systems.",
     type: "website",
     url: siteUrl,
-    siteName: "Yawar's Portfolio",
+    siteName: "Yawar Shahid's Portfolio",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Yawar | Backend Engineer",
+        alt: "Yawar Shahid | Backend Engineer",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Yawar | Backend Engineer",
+    title: "Yawar Shahid | Backend Engineer",
     description:
-      "Backend engineer specializing in healthcare automation, RPA pipelines, and reliable systems.",
+      "Yawar Shahid is a backend engineer specializing in healthcare automation, RPA pipelines, and reliable systems.",
     images: ["/opengraph-image"],
   },
 };
@@ -77,7 +90,10 @@ const personSchema = {
     "RPA",
     "Backend Engineering",
   ],
-  sameAs: ["https://www.linkedin.com/in/yawar-shahid-3032b816b/"],
+  sameAs: [
+    "https://www.linkedin.com/in/yawar-shahid-3032b816b/",
+    "https://github.com/mohdyawars",
+  ],
 };
 
 const websiteSchema = {

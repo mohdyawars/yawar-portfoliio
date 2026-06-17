@@ -3,7 +3,7 @@ import { generatePageMetadata } from "@/lib/metadata";
 export const metadata = generatePageMetadata({
   title: "About Me",
   description:
-    "Hi, I'm Yawar – a software developer who builds reliable systems for healthcare, logistics, and finance.",
+    "Hi, I'm Yawar Shahid – a backend engineer who builds reliable systems for healthcare, logistics, and finance.",
   path: "/about",
 });
 
@@ -18,7 +18,7 @@ export default function AboutPage() {
         <div className="mt-8 grid gap-8 lg:grid-cols-2 lg:gap-12">
           <div>
             <p className="text-lead">
-              Hi, I&apos;m Yawar – a software engineer who builds reliable backend systems.
+              Hi, I&apos;m Yawar Shahid – a software engineer who builds reliable backend systems.
             </p>
             <p className="mt-4 text-zinc-600 dark:text-zinc-400 leading-relaxed">
               I specialize in building the behind-the-scenes software that powers businesses in healthcare, 
